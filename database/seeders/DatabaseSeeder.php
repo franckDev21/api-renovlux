@@ -22,8 +22,8 @@ class DatabaseSeeder extends Seeder
         // Exécuter les seeders pour les catégories, les projets et les services
         $this->call([
             CategorySeeder::class,
-            ProjectSeeder::class,
-            ServiceSeeder::class,
+            // ProjectSeeder::class,
+            // ServiceSeeder::class,
         ]);
     }
 }
