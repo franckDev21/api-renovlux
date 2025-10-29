@@ -12,6 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ServiceController extends Controller
 {
@@ -55,26 +57,47 @@ class ServiceController extends Controller
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $data = $request->validated();
-        
-        // Handle file upload
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('services', 'public');
-            $data['image'] = $path;
-        }
-        
-        $service = Service::create($data);
-        
-        // Create service items
-        foreach ($request->input('service_items', []) as $item) {
-            $service->serviceItems()->create([
-                'title' => $item['title']
-            ]);
-        }
+        $imagePath = null;
 
-        return response()->json([
-            'data' => new ServiceResource($service->load('serviceItems')),
-            'message' => 'Service created successfully.'
-        ], 201);
+        DB::beginTransaction();
+
+        try {
+            // Upload du fichier (temporairement)
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('services', 'public');
+                $data['image'] = $imagePath;
+            }
+
+            // Création du service principal
+            $service = Service::create($data);
+
+            // Création des éléments associés
+            foreach ($request->input('service_items', []) as $item) {
+                $service->serviceItems()->create([
+                    'title' => $item,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'data' => new ServiceResource($service->load('serviceItems')),
+                'message' => 'Service created successfully.',
+            ], 201);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            // Si l’image a été uploadée avant l’erreur, on la supprime du storage
+            if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            return response()->json([
+                'message' => 'An error occurred while creating the service.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -91,53 +114,55 @@ class ServiceController extends Controller
     public function update(UpdateServiceRequest $request, Service $service): JsonResponse
     {
         $data = $request->validated();
-        
-        // Handle file upload if a new image is provided
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($service->image && Storage::disk('public')->exists($service->image)) {
-                Storage::disk('public')->delete($service->image);
-            }
-            
-            $path = $request->file('image')->store('services', 'public');
-            $data['image'] = $path;
-        }
-        
-        $service->update($data);
+        $imagePath = null;
 
-        // Handle service items
-        if ($request->has('service_items')) {
-            $itemIds = [];
-            
-            foreach ($request->input('service_items', []) as $item) {
-                if (isset($item['_delete'])) {
-                    // Delete the item if marked for deletion
-                    $service->serviceItems()->where('id', $item['id'])->delete();
-                } elseif (isset($item['id'])) {
-                    // Update existing item
-                    $serviceItem = $service->serviceItems()->find($item['id']);
-                    if ($serviceItem) {
-                        $serviceItem->update(['title' => $item['title']]);
-                        $itemIds[] = $serviceItem->id;
-                    }
-                } else {
-                    // Create new item
-                    $newItem = $service->serviceItems()->create([
-                        'title' => $item['title']
-                    ]);
-                    $itemIds[] = $newItem->id;
+        DB::beginTransaction();
+
+        try {
+            // Upload d'une nouvelle image si fournie
+            if ($request->hasFile('image')) {
+                if ($service->image && Storage::disk('public')->exists($service->image)) {
+                    Storage::disk('public')->delete($service->image);
                 }
+                $imagePath = $request->file('image')->store('services', 'public');
+                $data['image'] = $imagePath;
             }
 
-            // Delete items not included in the request
-            $service->serviceItems()->whereNotIn('id', $itemIds)->delete();
-        }
+            // Mise à jour du service
+            $service->update($data);
 
-        return response()->json([
-            'data' => new ServiceResource($service->load('serviceItems')),
-            'message' => 'Service updated successfully.'
-        ]);
+            // Suppression de tous les items existants
+            $service->serviceItems()->delete();
+
+            // Création des nouveaux items envoyés par le user (si présents)
+            foreach ($request->input('service_items', []) as $item) {
+                $service->serviceItems()->create([
+                    'title' => $item,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'data' => new ServiceResource($service->load('serviceItems')),
+                'message' => 'Service updated successfully.',
+            ]);
+
+        } catch (Throwable $e) {
+            DB::rollBack();
+
+            // Supprimer l'image uploadée si erreur
+            if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+
+            return response()->json([
+                'message' => 'An error occurred while updating the service.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
+
 
     /**
      * Remove the specified resource from storage.

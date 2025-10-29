@@ -24,6 +24,7 @@ import { useCreateService, useUpdateService } from '@/features/services/hooks/us
 import { Loader2 } from "lucide-react"
 
 import { router } from '@inertiajs/react'
+import MultiSelectCreatable from "@/components/MultiSelectCreatable"
 
 interface ServiceFormProps {
   service?: Service
@@ -107,6 +108,8 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
                 </FormItem>
               )}
             />
+
+            <MultiSelectCreatable />
 
             <FormField
               control={form.control}
