@@ -54,7 +54,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
       name: service?.name ?? '',
       description: service?.description ?? '',
       is_active: isEdit ? service.is_active : true,
-      service_items: service?.service_items?.map(item => item.title) ?? [],
+      service_items: service?.features?.map(item => item) ?? [],
     },
   })
 
@@ -115,12 +115,13 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
             <FormField
               control={form.control}
               name="service_items"
-              render={() => (
+              render={({ field }) => (
                 <MultiSelectCreatable
-                  options={[]}
                   name="service_items"
                   label="Éléments du service"
                   description="Ajoutez les caractéristiques ou fonctionnalités de votre service"
+                  value={field.value || []}
+                  onChange={field.onChange}
                 />
               )}
             />
