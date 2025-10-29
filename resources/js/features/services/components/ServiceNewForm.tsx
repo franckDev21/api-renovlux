@@ -117,6 +117,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
               name="service_items"
               render={() => (
                 <MultiSelectCreatable
+                  options={[]}
                   name="service_items"
                   label="Éléments du service"
                   description="Ajoutez les caractéristiques ou fonctionnalités de votre service"

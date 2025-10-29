@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
+import React from 'react';
 
 import { router } from '@inertiajs/react'
 
@@ -21,6 +22,7 @@ import {
 import { Service } from '../types/service';
 import { useCreateService, useUpdateService } from '../hooks/useServices';
 import { ImageUploadField } from '@/components/ImageUploadField';
+import MultiSelectCreatable from '@/components/MultiSelectCreatable';
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -31,6 +33,7 @@ const formSchema = z.object({
   }),
   is_active: z.boolean(),
   image: z.any().optional(),
+  service_items: z.array(z.string().min(1, "L'élément ne peut pas être vide")).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -53,8 +56,25 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
       name: service?.name ?? '',
       description: service?.description ?? '',
       is_active: service?.is_active ?? true,
+      service_items: service?.features || [],
+      image: service?.image || undefined,
     },
   });
+
+  // Convertir les features en options pour le MultiSelectCreatable
+  const featureOptions = React.useMemo(() => {
+    return service?.features?.map(feature => ({
+      value: feature,
+      label: feature
+    })) || [];
+  }, [service?.features]);
+
+  // Log pour le débogage
+  React.useEffect(() => {
+    console.log('ServiceForm - Form values:', form.watch());
+    console.log('ServiceForm - Features:', service?.features);
+    console.log('ServiceForm - Options:', featureOptions);
+  }, [form, service?.features, featureOptions]);
 
   const handleSubmit = (values: FormValues) => {
     const formData = new FormData();
@@ -65,6 +85,12 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
     
     if (values.image && values.image instanceof File) {
       formData.append('image', values.image);
+    }
+    
+    if (values.service_items && values.service_items.length > 0) {
+      values.service_items.forEach((item, index) => {
+        formData.append(`service_items[${index}]`, item);
+      });
     }
 
     if (isEdit && service) {
@@ -105,13 +131,33 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
           
           <FormField
             control={form.control}
+            name="service_items"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <MultiSelectCreatable
+                    name="service_items"
+                    label="Fonctionnalités du service"
+                    description="Ajoutez les fonctionnalités de votre service"
+                    options={featureOptions}
+                    value={field.value || []}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+                      
+          <FormField
+            control={form.control}
             name="is_active"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
-                  <FormLabel className="text-base">Service actif</FormLabel>
+                  <FormLabel className="text-base">Statut</FormLabel>
                   <FormDescription>
-                    Ce service sera visible pour les clients s'il est actif
+                    Activez ou désactivez la visibilité de ce service
                   </FormDescription>
                 </div>
                 <FormControl>
@@ -133,8 +179,8 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Décrivez le service en détail..."
-                      className="min-h-[120px]"
+                      placeholder="Description détaillée du service"
+                      className="min-h-[100px]"
                       {...field}
                     />
                   </FormControl>

@@ -16,7 +16,8 @@ export interface Service {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  service_items?: ServiceItem[];
+  features?: string[]; // Anciennement service_items
+  service_items?: ServiceItem[]; // Gardé pour la rétrocompatibilité
 }
 
 export interface ServiceFormData {
