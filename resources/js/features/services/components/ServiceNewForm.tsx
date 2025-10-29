@@ -39,6 +39,7 @@ const formSchema = z.object({
   }),
   is_active: z.boolean(),
   image: z.any().optional(),
+  service_items: z.array(z.string().min(1, "L'élément ne peut pas être vide")).optional(),
 })
 
 export function ServiceNewForm({ service }: ServiceFormProps) {
@@ -53,6 +54,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
       name: service?.name ?? '',
       description: service?.description ?? '',
       is_active: isEdit ? service.is_active : true,
+      service_items: service?.service_items?.map(item => item.title) ?? [],
     },
   })
 
@@ -68,6 +70,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
         }
       )
     } else {
+      console.log("Création du service :", values)
       createMutation.mutate(values, {
         onSuccess: () => {
           router.visit('/company-services/home', { replace: true })
@@ -109,7 +112,17 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
               )}
             />
 
-            <MultiSelectCreatable />
+            <FormField
+              control={form.control}
+              name="service_items"
+              render={() => (
+                <MultiSelectCreatable
+                  name="service_items"
+                  label="Éléments du service"
+                  description="Ajoutez les caractéristiques ou fonctionnalités de votre service"
+                />
+              )}
+            />
 
             <FormField
               control={form.control}

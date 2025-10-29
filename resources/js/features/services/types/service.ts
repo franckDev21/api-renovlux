@@ -1,3 +1,11 @@
+export interface ServiceItem {
+  id: string;
+  title: string;
+  service_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -8,6 +16,7 @@ export interface Service {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  service_items?: ServiceItem[];
 }
 
 export interface ServiceFormData {
