@@ -26,6 +26,7 @@ export interface ServiceFormData {
   // price: number;
   // duration: string; // format: "30 jours"
   is_active: boolean;
+  service_items?: string[];
 }
 
 export interface ServiceFilters {

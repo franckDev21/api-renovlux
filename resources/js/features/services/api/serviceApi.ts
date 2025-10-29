@@ -59,6 +59,13 @@ export const toFormData = (data: ServiceFormData): FormData => {
   // formData.append('duration', data.duration.toString());
   formData.append('is_active', data.is_active ? '1' : '0');
   
+  // Ajouter les éléments de service s'ils existent
+  if (data.service_items && data.service_items.length > 0) {
+    data.service_items.forEach((item, index) => {
+      formData.append(`service_items[${index}]`, item);
+    });
+  }
+  
   if (data.image instanceof File) {
     formData.append('image', data.image);
   } else if (typeof data.image === 'string') {
