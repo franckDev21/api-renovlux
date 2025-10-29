@@ -23,7 +23,6 @@ interface MultiSelectCreatableProps {
 }
 
 const MultiSelectCreatable: React.FC<MultiSelectCreatableProps> = ({
-  name,
   label,
   className,
   placeholder = "Sélectionner ou créer des éléments...",
@@ -32,11 +31,6 @@ const MultiSelectCreatable: React.FC<MultiSelectCreatableProps> = ({
   value = [],
   onChange,
 }) => {
-  console.log(`MultiSelectCreatable [${name}] - Props:`, {
-    initialOptions,
-    value,
-    hasOnChange: !!onChange
-  });
   const [internalOptions, setInternalOptions] = React.useState<OptionType[]>(initialOptions);
 
   // Synchroniser les options internes avec les options initiales et les valeurs sélectionnées
@@ -69,15 +63,6 @@ const MultiSelectCreatable: React.FC<MultiSelectCreatableProps> = ({
       .filter(Boolean) as OptionType[];
   }, [value, internalOptions]);
 
-  // Debug
-  useEffect(() => {
-    console.log(`MultiSelectCreatable [${name}] Debug:`, {
-      propsValue: value,
-      selectedOptions,
-      internalOptions,
-      initialOptions,
-    });
-  }, [name, value, selectedOptions, internalOptions, initialOptions]);
 
   // Gestion du changement de sélection
   const handleChange = (newValue: MultiValue<OptionType>) => {

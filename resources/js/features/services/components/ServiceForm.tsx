@@ -69,12 +69,6 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
     })) || [];
   }, [service?.features]);
 
-  // Log pour le débogage
-  React.useEffect(() => {
-    console.log('ServiceForm - Form values:', form.watch());
-    console.log('ServiceForm - Features:', service?.features);
-    console.log('ServiceForm - Options:', featureOptions);
-  }, [form, service?.features, featureOptions]);
 
   const handleSubmit = (values: FormValues) => {
     const formData = new FormData();
@@ -114,7 +108,7 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 _md:grid-cols-2">
           <FormField
             control={form.control}
             name="name"
@@ -128,7 +122,7 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="service_items"
@@ -148,7 +142,7 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
               </FormItem>
             )}
           />
-                      
+
           <FormField
             control={form.control}
             name="is_active"
@@ -169,40 +163,36 @@ export function ServiceForm({ service, onSuccess, onCancel }: ServiceFormProps) 
               </FormItem>
             )}
           />
-          
-          <div className="md:col-span-2">
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Description détaillée du service"
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="md:col-span-2">
-            <FormField
-              control={form.control}
-              name="image"
-              render={({ field }) => (
-                <ImageUploadField
-                  label="Image du service"
-                  field={field}
-                  defaultImageUrl={service?.image}
-                />
-              )}
-            />
-          </div>
+                  
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Description détaillée du service"
+                    className="min-h-[100px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        
+          <FormField
+            control={form.control}
+            name="image"
+            render={({ field }) => (
+              <ImageUploadField
+                label="Image du service"
+                field={field}
+                defaultImageUrl={service?.image}
+              />
+            )}
+          />
         </div>
         
         <div className="flex justify-end space-x-4">
