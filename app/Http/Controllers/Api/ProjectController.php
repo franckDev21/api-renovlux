@@ -88,22 +88,16 @@ class ProjectController extends Controller
         
         // Handle secondary images upload if provided
         if ($request->hasFile('secondary_images')) {
-            // Delete old secondary images if they exist
-            if ($project->secondary_images) {
-                foreach ($project->secondary_images as $oldImage) {
-                    if (Storage::disk('public')->exists($oldImage)) {
-                        Storage::disk('public')->delete($oldImage);
-                    }
-                }
-            }
+            // Get existing secondary images or initialize empty array
+            $existingImages = $project->secondary_images ?? [];
             
             // Upload new secondary images
-            $secondaryImages = [];
             foreach ($request->file('secondary_images') as $image) {
                 $path = $image->store('projects/secondary', 'public');
-                $secondaryImages[] = $path;
+                $existingImages[] = $path;
             }
-            $data['secondary_images'] = $secondaryImages;
+            
+            $data['secondary_images'] = $existingImages;
         }
         
         $project->update($data);
@@ -114,6 +108,48 @@ class ProjectController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
+    /**
+     * Delete a secondary image from a project.
+     *
+     * @param  \App\Models\Project  $project
+     * @param  string  $imagePath
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteSecondaryImage(Project $project, string $imagePath): JsonResponse
+    {
+        // Décoder le chemin de l'image qui a été encodé en URL
+        $imagePath = urldecode($imagePath);
+        
+        // Vérifier si l'image existe dans le tableau des images secondaires
+        $secondaryImages = $project->secondary_images ?? [];
+        $imageIndex = array_search($imagePath, $secondaryImages);
+        
+        if ($imageIndex === false) {
+            return response()->json([
+                'message' => 'Image not found in this project',
+            ], 404);
+        }
+        
+        // Supprimer le fichier physique
+        if (Storage::disk('public')->exists($imagePath)) {
+            Storage::disk('public')->delete($imagePath);
+        }
+        
+        // Supprimer l'image du tableau
+        array_splice($secondaryImages, $imageIndex, 1);
+        
+        // Mettre à jour le projet
+        $project->update(['secondary_images' => $secondaryImages]);
+        
+        return response()->json([
+            'message' => 'Image deleted successfully',
+            'data' => new ProjectResource($project->load('category'))
+        ]);
+    }
+    
     /**
      * Remove the specified resource from storage.
      */
