@@ -36,10 +36,20 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
         
-        // Handle file upload
+        // Handle main image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('projects', 'public');
             $data['image'] = $path;
+        }
+        
+        // Handle secondary images upload
+        $secondaryImages = [];
+        if ($request->hasFile('secondary_images')) {
+            foreach ($request->file('secondary_images') as $image) {
+                $path = $image->store('projects/secondary', 'public');
+                $secondaryImages[] = $path;
+            }
+            $data['secondary_images'] = $secondaryImages;
         }
         
         $project = Project::create($data);
@@ -65,7 +75,7 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
         
-        // Handle file upload if a new image is provided
+        // Handle main image upload if a new image is provided
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($project->image && Storage::disk('public')->exists($project->image)) {
@@ -74,6 +84,26 @@ class ProjectController extends Controller
             
             $path = $request->file('image')->store('projects', 'public');
             $data['image'] = $path;
+        }
+        
+        // Handle secondary images upload if provided
+        if ($request->hasFile('secondary_images')) {
+            // Delete old secondary images if they exist
+            if ($project->secondary_images) {
+                foreach ($project->secondary_images as $oldImage) {
+                    if (Storage::disk('public')->exists($oldImage)) {
+                        Storage::disk('public')->delete($oldImage);
+                    }
+                }
+            }
+            
+            // Upload new secondary images
+            $secondaryImages = [];
+            foreach ($request->file('secondary_images') as $image) {
+                $path = $image->store('projects/secondary', 'public');
+                $secondaryImages[] = $path;
+            }
+            $data['secondary_images'] = $secondaryImages;
         }
         
         $project->update($data);
@@ -89,9 +119,18 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project): JsonResponse
     {
-        // Delete associated image if exists
+        // Delete main image if exists
         if ($project->image && Storage::disk('public')->exists($project->image)) {
             Storage::disk('public')->delete($project->image);
+        }
+        
+        // Delete secondary images if they exist
+        if ($project->secondary_images) {
+            foreach ($project->secondary_images as $image) {
+                if (Storage::disk('public')->exists($image)) {
+                    Storage::disk('public')->delete($image);
+                }
+            }
         }
         
         $project->delete();

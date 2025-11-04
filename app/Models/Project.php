@@ -10,12 +10,27 @@ use Illuminate\Support\Str;
 class Project extends Model
 {
     use HasFactory;
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'uuid',
         'title',
         'description',
         'image',
+        'secondary_images',
         'category_id'
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'secondary_images' => 'array',
     ];
 
     /**
