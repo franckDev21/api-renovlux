@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\ProductController;
 
 // Routes pour les projets
 Route::apiResource('projects', ProjectController::class)->except(['update']);
@@ -12,3 +13,6 @@ Route::delete('projects/{project}/secondary-images/{imagePath}', [ProjectControl
 
 // Routes pour les services
 Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
+
+// Routes pour les produits
+Route::apiResource('products', ProductController::class);
