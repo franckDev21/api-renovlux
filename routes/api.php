@@ -11,8 +11,26 @@ Route::delete('projects/{project}/secondary-images/{imagePath}', [ProjectControl
     ->where('imagePath', '.*') // Permet d'avoir des slashes dans le chemin
     ->name('projects.secondary-images.destroy');
 
-// Routes pour les services
-Route::apiResource('services', \App\Http\Controllers\Api\ServiceController::class);
+// Routes pour les services (publiques pour la lecture)
+Route::get('services', [\App\Http\Controllers\Api\ServiceController::class, 'index'])->name('services.index');
+Route::get('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'show'])->name('services.show');
 
 // Routes pour les produits
-Route::apiResource('products', ProductController::class);
+// Routes publiques (pour le frontend Next.js)
+Route::get('products', [ProductController::class, 'index'])->name('products.index');
+Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+
+// Routes authentifiées (pour le back-office Inertia)
+// Utilisation de auth:web avec session (le middleware StartSessionForApi permet l'accès à la session)
+Route::middleware('auth:web')->group(function () {
+    Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::patch('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    
+    // Routes authentifiées pour les services
+    Route::post('services', [\App\Http\Controllers\Api\ServiceController::class, 'store'])->name('services.store');
+    Route::put('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->name('services.update');
+    Route::patch('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->name('services.update');
+    Route::delete('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy'])->name('services.destroy');
+});

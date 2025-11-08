@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 class ProductController extends Controller
@@ -87,7 +86,9 @@ class ProductController extends Controller
             // Définir les valeurs par défaut si non fournies
             $data['en_stock'] = $request->input('en_stock', true);
             $data['active'] = $request->input('active', true);
-            $data['creé_par'] = Auth::id();
+            
+            // Récupérer l'ID de l'utilisateur authentifié (le middleware auth:web garantit qu'un utilisateur est présent)
+            $data['creé_par'] = $request->user()->id;
 
             // Création du produit
             $product = Product::create($data);

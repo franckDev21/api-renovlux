@@ -27,6 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Ajouter les middlewares nécessaires aux routes API pour l'authentification avec Inertia
+        // Cela permet aux routes API d'accéder à la session utilisateur via les cookies
+        $middleware->api(prepend: [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \App\Http\Middleware\StartSessionForApi::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
