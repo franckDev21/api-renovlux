@@ -27,6 +27,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('products/create', function () {
         return Inertia::render('products/create');
     })->name('products.create');
+
+    Route::get('products/{id}', function (string $id) {
+        return Inertia::render('products/show', ['id' => $id]);
+    })->name('products.show');
+
+    Route::get('products/{id}/edit', function (string $id) {
+        return Inertia::render('products/edit', ['id' => $id]);
+    })->name('products.edit');
 });
 
 require __DIR__.'/settings.php';

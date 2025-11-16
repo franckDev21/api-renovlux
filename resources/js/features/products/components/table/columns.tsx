@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Product } from "../../types/product"
+import { router } from "@inertiajs/react"
 
 export type Payment = Product
 
@@ -169,8 +170,16 @@ export const columns: ColumnDef<Product>[] = [
               Copier l'ID du produit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Voir les détails</DropdownMenuItem>
-            <DropdownMenuItem>Modifier</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.visit(`/products/${product.id}`)}
+            >
+              Voir les détails
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.visit(`/products/${product.id}/edit`)}
+            >
+              Modifier
+            </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive">
               Supprimer
             </DropdownMenuItem>
