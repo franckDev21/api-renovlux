@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { ProductDataTable } from './table/data-table'
-import { columns } from './table/columns'
+import { columns, type Payment } from './table/columns'
 
 function ListingProduct() {
-  const [data, setData] = useState([
+  const [data, setData] = useState<Payment[]>([
     {
       id: "728ed52f",
       amount: 100,
