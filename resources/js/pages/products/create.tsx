@@ -1,10 +1,8 @@
+import { ProductNewForm } from '@/features/products/components/ProductNewForm';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import ListingProduct from '@/features/products/components/ListingProduct';
+import { Head } from '@inertiajs/react';
 
 const breadcrumbs: BreadcrumbItem[] = [
   {
@@ -13,37 +11,35 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
   {
     title: 'Produits',
+    href: '/products/home'
+  },
+  {
+    title: "Création d'un nouveau produit", 
   },
 ];
 
-export default function Home() {
+export default function Create() {
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Gestion des produits" />
+      <Head title="Création d'un produit" />
       
       <div className="flex flex-col space-y-6 px-6">
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Gestion des produits</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Création d'un produit</h1>
             <p className="text-muted-foreground">
-              Gérez les produits de votre catalogue
+              Ajoutez un nouveau produit à votre catalogue
             </p>
           </div>
-          <Button asChild >
-            <Link href="/products/create" prefetch>
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter un produit
-            </Link>
-          </Button>
         </div>
 
         <div className="rounded-lg border bg-card">
-          <ListingProduct />
+          <ProductNewForm />
         </div>
       </div>
-
-      
+     
     </AppLayout>
   );
 }
+

@@ -23,6 +23,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('products/home', function () {
         return Inertia::render('products/home');
     })->name('products.home');
+
+    Route::get('products/create', function () {
+        return Inertia::render('products/create');
+    })->name('products.create');
 });
 
 require __DIR__.'/settings.php';
