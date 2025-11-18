@@ -33,7 +33,10 @@ export const createProduct = async (data: FormData): Promise<Product> => {
 };
 
 export const updateProduct = async (id: string, data: FormData): Promise<Product> => {
-  const response = await axios.put<{ data: Product }>(`${API_BASE_URL}/${id}`, data, {
+  // Ajouter _method=PUT pour que Laravel reconnaisse la méthode
+  data.append('_method', 'PUT');
+  
+  const response = await axios.post<{ data: Product }>(`${API_BASE_URL}/${id}`, data, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

@@ -138,10 +138,19 @@ class ProductController extends Controller
      */
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
+        // Log des données brutes avant validation
+        Log::info('Product update raw data:', [
+            'all' => $request->all(),
+            'name' => $request->input('name'),
+            'price' => $request->input('price'),
+            'en_stock' => $request->input('en_stock'),
+            'active' => $request->input('active'),
+        ]);
+        
         $data = $request->validated();
         
         // Log pour déboguer
-        Log::info('Product update data received:', $data);
+        Log::info('Product update validated data:', $data);
         Log::info('Product before update:', $product->toArray());
         
         $imagePrincipalePath = null;

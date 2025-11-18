@@ -24,6 +24,7 @@ Route::get('products/{product}', [ProductController::class, 'show'])->name('prod
 // Utilisation de auth:web avec session (le middleware StartSessionForApi permet l'accès à la session)
 Route::middleware('auth:web')->group(function () {
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::post('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::patch('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');

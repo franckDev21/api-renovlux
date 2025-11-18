@@ -53,20 +53,31 @@ export const useUpdateProduct = () => {
       queryClient.invalidateQueries({ queryKey: ['product'] });
       toast.success('Produit mis à jour avec succès');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error updating product:', error);
       
       // Gérer les erreurs de validation (422)
-      if (error?.response?.status === 422) {
-        const validationErrors = error.response.data.errors;
-        const firstError = Object.values(validationErrors)[0];
-        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
-        toast.error(errorMessage || "Erreur de validation");
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string; error?: string } } };
+        
+        if (axiosError.response?.status === 422) {
+          const validationErrors = axiosError.response.data?.errors;
+          if (validationErrors) {
+            const firstError = Object.values(validationErrors)[0];
+            const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+            toast.error(errorMessage || "Erreur de validation");
+            return;
+          }
+        }
+        
+        // Autres erreurs
+        const errorMessage = axiosError.response?.data?.message || axiosError.response?.data?.error || "Erreur lors de la mise à jour du produit";
+        toast.error(errorMessage);
         return;
       }
       
-      // Autres erreurs
-      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Erreur lors de la mise à jour du produit";
+      // Erreur générique
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la mise à jour du produit";
       toast.error(errorMessage);
     },
   });
