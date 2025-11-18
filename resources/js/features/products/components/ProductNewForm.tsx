@@ -124,7 +124,7 @@ export function ProductNewForm({ product }: ProductFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-4">
-        <div className="flex items-start space-x-4">
+        <div className="flex items-start md:flex-row flex-col space-x-4">
           <FormField
             control={form.control}
             name="image_principale"
@@ -136,7 +136,7 @@ export function ProductNewForm({ product }: ProductFormProps) {
               />
             )}
           />
-          <div className="w-3/4 space-y-4">
+          <div className="w-full md:w-3/4 space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -198,7 +198,7 @@ export function ProductNewForm({ product }: ProductFormProps) {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="en_stock"

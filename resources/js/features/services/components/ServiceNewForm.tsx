@@ -82,7 +82,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-4">
-        <div className="flex items-start space-x-4">
+        <div className="flex md:flex-row flex-col items-start space-x-4">
           <FormField
             control={form.control}
             name="image"
@@ -94,7 +94,7 @@ export function ServiceNewForm({ service }: ServiceFormProps) {
               />
             )}
           />
-          <div className="w-3/4 space-y-4">
+          <div className="w-full md:w-3/4 space-y-4">
             <FormField
               control={form.control}
               name="name"
