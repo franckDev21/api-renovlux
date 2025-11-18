@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class ProductController extends Controller
@@ -138,6 +139,11 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
         $data = $request->validated();
+        
+        // Log pour déboguer
+        Log::info('Product update data received:', $data);
+        Log::info('Product before update:', $product->toArray());
+        
         $imagePrincipalePath = null;
         $newImagesSecondaires = [];
 
@@ -172,6 +178,11 @@ class ProductController extends Controller
 
             // Mise à jour du produit
             $product->update($data);
+            
+            // Recharger le produit pour avoir les dernières valeurs
+            $product->refresh();
+            
+            Log::info('Product after update:', $product->toArray());
 
             DB::commit();
 
@@ -182,6 +193,13 @@ class ProductController extends Controller
 
         } catch (Throwable $e) {
             DB::rollBack();
+
+            // Log de l'erreur complète
+            Log::error('Product update error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'product_id' => $product->id,
+            ]);
 
             // Supprimer l'image principale uploadée si erreur
             if ($imagePrincipalePath && Storage::disk('public')->exists($imagePrincipalePath)) {

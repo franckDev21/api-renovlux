@@ -49,19 +49,30 @@ export const deleteProduct = async (id: string): Promise<void> => {
 export const toFormData = (data: ProductFormData): FormData => {
   const formData = new FormData();
   
+  // Toujours envoyer les champs de base pour qu'ils soient mis à jour
   formData.append('name', data.name);
   formData.append('price', data.price.toString());
+  
+  // Description - toujours envoyer, même si vide
   formData.append('description', data.description || '');
+  
+  // Booléens - toujours envoyer
   formData.append('en_stock', data.en_stock ? '1' : '0');
   formData.append('active', data.active ? '1' : '0');
   
+  // Pour l'image principale : seulement si c'est un nouveau fichier
+  // Si ce n'est pas un File, on ne l'envoie pas (le backend gardera l'image existante)
   if (data.image_principale instanceof File) {
     formData.append('image_principale', data.image_principale);
   }
   
+  // Pour les images secondaires : seulement les nouveaux fichiers
+  // Les images existantes sont conservées par le backend
   if (data.images_secondaires && data.images_secondaires.length > 0) {
     data.images_secondaires.forEach((image) => {
-      formData.append('images_secondaires[]', image);
+      if (image instanceof File) {
+        formData.append('images_secondaires[]', image);
+      }
     });
   }
   

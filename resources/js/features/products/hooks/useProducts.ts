@@ -50,11 +50,24 @@ export const useUpdateProduct = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
       toast.success('Produit mis à jour avec succès');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating product:', error);
-      toast.error("Erreur lors de la mise à jour du produit");
+      
+      // Gérer les erreurs de validation (422)
+      if (error?.response?.status === 422) {
+        const validationErrors = error.response.data.errors;
+        const firstError = Object.values(validationErrors)[0];
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+        toast.error(errorMessage || "Erreur de validation");
+        return;
+      }
+      
+      // Autres erreurs
+      const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Erreur lors de la mise à jour du produit";
+      toast.error(errorMessage);
     },
   });
 };

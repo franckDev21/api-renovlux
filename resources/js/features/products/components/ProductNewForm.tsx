@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +24,7 @@ import { MultiImageUploadField } from "@/components/MultiImageUploadField"
 
 import { useCreateProduct, useUpdateProduct } from '@/features/products/hooks/useProducts';
 import { Loader2 } from "lucide-react"
+import { ProductFormData } from '@/features/products/types/product';
 
 import { router } from '@inertiajs/react'
 
@@ -58,21 +60,43 @@ export function ProductNewForm({ product }: ProductFormProps) {
       name: product?.name ?? '',
       price: product?.price ?? 0,
       description: product?.description ?? '',
-      en_stock: isEdit ? product.en_stock : true,
-      active: isEdit ? product.active : true,
+      en_stock: isEdit ? product?.en_stock ?? true : true,
+      active: isEdit ? product?.active ?? true : true,
       image_principale: undefined,
       images_secondaires: [],
     },
   })
 
+  // Mettre à jour les valeurs du formulaire quand le produit change
+  useEffect(() => {
+    if (product) {
+      form.reset({
+        name: product.name,
+        price: product.price,
+        description: product.description || '',
+        en_stock: product.en_stock,
+        active: product.active,
+        image_principale: undefined, // On garde undefined pour ne pas forcer une nouvelle image
+        images_secondaires: [], // On initialise vide, les images existantes sont gérées par defaultImageUrls
+      })
+    }
+  }, [product, form])
+
   function onSubmit(values: FormValues) {
     // Convertir les images secondaires en File[]
     const imagesSecondaires = (values.images_secondaires || []).filter((img): img is File => img instanceof File);
     
-    const formData = {
-      ...values,
+    const formData: ProductFormData = {
+      name: values.name,
+      price: values.price,
+      description: values.description || '',
+      en_stock: values.en_stock,
+      active: values.active,
+      image_principale: values.image_principale instanceof File ? values.image_principale : undefined,
       images_secondaires: imagesSecondaires,
     };
+
+    console.log('Form data to send:', formData);
 
     if (isEdit && product) {
       updateMutation.mutate(
@@ -82,6 +106,9 @@ export function ProductNewForm({ product }: ProductFormProps) {
             console.log("Produit mis à jour :", data)
             router.visit('/products/home', { replace: true })
           },
+          onError: (error) => {
+            console.error("Erreur lors de la mise à jour:", error)
+          }
         }
       )
     } else {

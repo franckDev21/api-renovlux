@@ -25,7 +25,7 @@ function ListingProduct() {
   }
 
   const products = data?.data || []
-
+  
   return (
     <div>
       <ProductDataTable columns={columns} data={products} />

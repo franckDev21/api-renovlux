@@ -15,19 +15,44 @@ class UpdateProductRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        // Convertir les strings '1'/'0' en booléens pour la validation
+        if ($this->has('en_stock')) {
+            $value = $this->input('en_stock');
+            // Convertir '1', 'true', 1, true en true, sinon false
+            $boolValue = ($value === '1' || $value === 1 || $value === 'true' || $value === true);
+            $this->merge([
+                'en_stock' => $boolValue,
+            ]);
+        }
+        
+        if ($this->has('active')) {
+            $value = $this->input('active');
+            // Convertir '1', 'true', 1, true en true, sinon false
+            $boolValue = ($value === '1' || $value === 1 || $value === 'true' || $value === true);
+            $this->merge([
+                'active' => $boolValue,
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
         return [
-            'name' => 'sometimes|required|string|max:255',
-            'price' => 'sometimes|required|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
             'image_principale' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'images_secondaires' => 'sometimes|nullable|array',
             'images_secondaires.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'description' => 'nullable|string',
-            'en_stock' => 'sometimes|boolean',
-            'active' => 'sometimes|boolean',
+            'en_stock' => 'required|boolean',
+            'active' => 'required|boolean',
         ];
     }
 
