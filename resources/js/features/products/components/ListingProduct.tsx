@@ -1,11 +1,22 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ProductDataTable } from './table/data-table'
 import { columns } from './table/columns'
 import { useProducts } from '../hooks/useProducts'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DeleteProductConfirmation } from './DeleteProductConfirmation'
+import { Product } from '../types/product'
 
 function ListingProduct() {
   const { data, isLoading, error } = useProducts()
+  const [deleteProduct, setDeleteProduct] = useState<{ id: string; name: string } | null>(null)
+
+  const handleDeleteClick = (product: Product) => {
+    setDeleteProduct({ id: product.id, name: product.name })
+  }
+
+  const handleDeleteSuccess = () => {
+    setDeleteProduct(null)
+  }
 
   if (isLoading) {
     return (
@@ -27,9 +38,19 @@ function ListingProduct() {
   const products = data?.data || []
   
   return (
-    <div>
-      <ProductDataTable columns={columns} data={products} />
-    </div>
+    <>
+      <ProductDataTable 
+        columns={columns(handleDeleteClick)} 
+        data={products} 
+      />
+      <DeleteProductConfirmation
+        isOpen={!!deleteProduct}
+        productId={deleteProduct?.id || null}
+        productName={deleteProduct?.name}
+        onClose={() => setDeleteProduct(null)}
+        onSuccess={handleDeleteSuccess}
+      />
+    </>
   )
 }
 

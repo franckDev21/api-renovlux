@@ -19,7 +19,7 @@ import { router } from "@inertiajs/react"
 
 export type Payment = Product
 
-export const columns: ColumnDef<Product>[] = [
+export const columns = (onDelete?: (product: Product) => void): ColumnDef<Product>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -180,7 +180,10 @@ export const columns: ColumnDef<Product>[] = [
             >
               Modifier
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem 
+              className="text-destructive"
+              onClick={() => onDelete?.(product)}
+            >
               Supprimer
             </DropdownMenuItem>
           </DropdownMenuContent>

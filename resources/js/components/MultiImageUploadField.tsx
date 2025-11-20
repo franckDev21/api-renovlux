@@ -92,10 +92,10 @@ export function MultiImageUploadField({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
-      const currentFiles = Array.isArray(field.value)
+      const currentFiles = Array.isArray(field.value) 
         ? field.value.filter((item): item is File => item instanceof File)
         : []
-
+      
       const availableSlots = Math.max(maxImages - existingCount - currentFiles.length, 0)
       const filesToAdd = files.slice(0, availableSlots)
 
@@ -116,10 +116,10 @@ export function MultiImageUploadField({
       return
     }
 
-    const currentFiles = Array.isArray(field.value)
+    const currentFiles = Array.isArray(field.value) 
       ? field.value.filter((value): value is File => value instanceof File)
       : []
-
+    
     const newFiles = currentFiles.filter((_, index) => index !== item.fileIndex)
     field.onChange(newFiles)
   }
