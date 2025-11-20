@@ -108,7 +108,7 @@ export function ImageUploadField({
           <>
             <img
               src={previewUrl}
-              alt="Preview"
+              alt="Aperçu"
               className="h-48 w-full object-cover rounded-md"
             />
             <button

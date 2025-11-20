@@ -140,7 +140,7 @@ export function MultiImageUploadField({
               <>
                 <img
                   src={item.url}
-                  alt={`Preview ${index + 1}`}
+                  alt={`Aperçu ${index + 1}`}
                   className="w-full h-32 object-cover"
                 />
                 <button
