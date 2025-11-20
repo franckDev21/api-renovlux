@@ -15,15 +15,41 @@ class ProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         // Convertir les chemins des images secondaires en URLs complètes
+        // Ne transformer que si ce n'est pas déjà une URL complète
         $imagesSecondaires = collect($this->images_secondaires ?? [])->map(function ($image) {
-            return $image ? asset('storage/' . $image) : null;
+            if (!$image) {
+                return null;
+            }
+            
+            // Si c'est déjà une URL complète (commence par http:// ou https://), la retourner telle quelle
+            if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+                return $image;
+            }
+            
+            // Sinon, c'est un chemin relatif, on le transforme en URL complète
+            return asset('storage/' . ltrim($image, '/'));
         })->filter()->values()->toArray();
+
+        // Fonction helper pour normaliser l'image principale
+        $normalizeImagePath = function ($image) {
+            if (!$image) {
+                return null;
+            }
+            
+            // Si c'est déjà une URL complète, la retourner telle quelle
+            if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+                return $image;
+            }
+            
+            // Sinon, c'est un chemin relatif, on le transforme en URL complète
+            return asset('storage/' . ltrim($image, '/'));
+        };
 
         return [
             'id' => $this->id,
             'name' => $this->name,
             'price' => (float) $this->price,
-            'image_principale' => $this->image_principale ? asset('storage/' . $this->image_principale) : null,
+            'image_principale' => $normalizeImagePath($this->image_principale),
             'images_secondaires' => $imagesSecondaires,
             'description' => $this->description,
             'en_stock' => (bool) $this->en_stock,

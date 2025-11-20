@@ -50,6 +50,9 @@ class UpdateProductRequest extends FormRequest
             'image_principale' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'images_secondaires' => 'sometimes|nullable|array',
             'images_secondaires.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'existing_images_secondaires' => 'sometimes|array',
+            'existing_images_secondaires.*' => 'string',
+            'existing_images_secondaires_submitted' => 'sometimes|boolean',
             'description' => 'nullable|string',
             'en_stock' => 'required|boolean',
             'active' => 'required|boolean',
@@ -73,6 +76,9 @@ class UpdateProductRequest extends FormRequest
             'images_secondaires.*.image' => 'Chaque image secondaire doit être un fichier image valide.',
             'images_secondaires.*.mimes' => 'Chaque image secondaire doit être de type : jpeg, png, jpg, gif, svg.',
             'images_secondaires.*.max' => 'Chaque image secondaire ne peut pas dépasser 2MB.',
+            'existing_images_secondaires.array' => 'Les images secondaires existantes doivent être un tableau.',
+            'existing_images_secondaires.*.string' => 'Chaque image secondaire existante doit être une URL valide.',
+            'existing_images_secondaires_submitted.boolean' => 'Le champ de suivi des images secondaires est invalide.',
         ];
     }
 }

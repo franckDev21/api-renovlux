@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useId, useState } from "react"
 import { FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { ImageIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -26,33 +26,53 @@ export function ImageUploadField({
   className,
 }: ImageUploadFieldProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [defaultCleared, setDefaultCleared] = useState(false)
+  const inputId = useId()
 
   // Déterminer l’image à afficher initialement
   useEffect(() => {
+    let objectUrl: string | null = null
+
     if (field.value instanceof File) {
-      const url = URL.createObjectURL(field.value)
-      setPreviewUrl(url)
-      return () => URL.revokeObjectURL(url)
+      objectUrl = URL.createObjectURL(field.value)
+      setPreviewUrl(objectUrl)
+      setDefaultCleared(false)
     } else if (typeof field.value === "string") {
       setPreviewUrl(field.value)
+      setDefaultCleared(false)
     } else if (defaultImageUrl) {
-      setPreviewUrl(defaultImageUrl)
+      if (!defaultCleared) {
+        setPreviewUrl(defaultImageUrl)
+      }
     } else {
       setPreviewUrl(null)
     }
-  }, [field.value, defaultImageUrl])
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [field.value, defaultImageUrl, defaultCleared])
+
+  useEffect(() => {
+    setDefaultCleared(false)
+  }, [defaultImageUrl])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       field.onChange(file)
+      setDefaultCleared(false)
     }
+    e.target.value = ""
   }
 
   const handleRemoveImage = (e: React.MouseEvent) => {
     e.stopPropagation()
     field.onChange(null)
-    setPreviewUrl(defaultImageUrl ?? null)
+    setPreviewUrl(null)
+    setDefaultCleared(true)
   }
 
   return (
@@ -60,14 +80,14 @@ export function ImageUploadField({
       {label && <FormLabel>{label}</FormLabel>}
 
       <label
-        htmlFor="image-upload"
+        htmlFor={inputId}
         className={cn(
           "relative flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-4 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/50 overflow-hidden",
           previewUrl && "border-muted-foreground/20 hover:bg-muted/50"
         )}
       >
         <input
-          id="image-upload"
+          id={inputId}
           type="file"
           accept="image/*"
           className="hidden"

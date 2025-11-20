@@ -1,10 +1,9 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useId, useMemo, useState } from "react"
 import { FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { ImageIcon, X, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 
 interface MultiImageUploadFieldProps {
   label?: string
@@ -13,6 +12,8 @@ interface MultiImageUploadFieldProps {
     value: File[] | string[]
   }
   defaultImageUrls?: string[]
+  existingImageUrls?: string[]
+  onExistingImagesChange?: (urls: string[]) => void
   className?: string
   maxImages?: number
 }
@@ -25,89 +26,126 @@ export function MultiImageUploadField({
   label = "Images",
   field,
   defaultImageUrls = [],
+  existingImageUrls = [],
+  onExistingImagesChange,
   className,
   maxImages = 10,
 }: MultiImageUploadFieldProps) {
-  const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([])
+  const [visibleExistingUrls, setVisibleExistingUrls] = useState<string[]>(
+    existingImageUrls.length > 0 ? existingImageUrls : defaultImageUrls
+  )
+  const [filePreviews, setFilePreviews] = useState<{ url: string; fileIndex: number }[]>([])
+  const addInputId = useId()
+  const initialInputId = useId()
 
-  // Convertir les valeurs en URLs de prévisualisation
+  // Réinitialiser l'affichage des images existantes quand elles changent
   useEffect(() => {
-    const urls: (string | null)[] = []
-    
-    // Gérer les fichiers
-    if (field.value && Array.isArray(field.value)) {
-      field.value.forEach((item) => {
-        if (item instanceof File) {
-          const url = URL.createObjectURL(item)
-          urls.push(url)
-        } else if (typeof item === "string") {
-          urls.push(item)
-        }
-      })
+    if (existingImageUrls.length > 0) {
+      setVisibleExistingUrls(existingImageUrls)
+    } else {
+      setVisibleExistingUrls(defaultImageUrls)
     }
-    
-    // Ajouter les images par défaut si nécessaire
-    if (urls.length === 0 && defaultImageUrls.length > 0) {
-      urls.push(...defaultImageUrls)
-    }
-    
-    setPreviewUrls(urls)
-    
-    // Nettoyer les URLs des fichiers
+  }, [existingImageUrls, defaultImageUrls])
+
+  // Convertir les nouveaux fichiers en URLs de prévisualisation
+  useEffect(() => {
+    const files = Array.isArray(field.value)
+      ? field.value.filter((item): item is File => item instanceof File)
+      : []
+
+    const previews = files.map((file, index) => ({
+      url: URL.createObjectURL(file),
+      fileIndex: index,
+    }))
+
+    setFilePreviews(previews)
+
     return () => {
-      urls.forEach((url) => {
-        if (url && url.startsWith("blob:")) {
-          URL.revokeObjectURL(url)
+      previews.forEach((preview) => {
+        if (preview.url.startsWith("blob:")) {
+          URL.revokeObjectURL(preview.url)
         }
       })
     }
-  }, [field.value, defaultImageUrls])
+  }, [field.value])
+
+  const previewItems = useMemo(() => {
+    const existingItems = visibleExistingUrls.map((url, index) => ({
+      type: "existing" as const,
+      url,
+      existingIndex: index,
+    }))
+
+    const newItems = filePreviews.map((preview) => ({
+      type: "new" as const,
+      url: preview.url,
+      fileIndex: preview.fileIndex,
+    }))
+
+    return [...existingItems, ...newItems]
+  }, [filePreviews, visibleExistingUrls])
+
+  const existingCount = visibleExistingUrls.length
+  const newFilesCount = filePreviews.length
+  const totalCount = existingCount + newFilesCount
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
-      const currentFiles = Array.isArray(field.value) 
-        ? field.value.filter((item) => item instanceof File) as File[]
+      const currentFiles = Array.isArray(field.value)
+        ? field.value.filter((item): item is File => item instanceof File)
         : []
-      
-      const newFiles = [...currentFiles, ...files].slice(0, maxImages)
+
+      const availableSlots = Math.max(maxImages - existingCount - currentFiles.length, 0)
+      const filesToAdd = files.slice(0, availableSlots)
+
+      const newFiles = [...currentFiles, ...filesToAdd]
       field.onChange(newFiles)
     }
     // Réinitialiser l'input pour permettre de sélectionner le même fichier
     e.target.value = ""
   }
 
-  const handleRemoveImage = (index: number) => {
-    const currentFiles = Array.isArray(field.value) 
-      ? field.value.filter((item) => item instanceof File) as File[]
+  const handleRemoveImage = (item: (typeof previewItems)[number]) => {
+    if (item.type === "existing") {
+      setVisibleExistingUrls((prev) => {
+        const next = prev.filter((url, index) => !(index === item.existingIndex && url === item.url))
+        onExistingImagesChange?.(next)
+        return next
+      })
+      return
+    }
+
+    const currentFiles = Array.isArray(field.value)
+      ? field.value.filter((value): value is File => value instanceof File)
       : []
-    
-    const newFiles = currentFiles.filter((_, i) => i !== index)
+
+    const newFiles = currentFiles.filter((_, index) => index !== item.fileIndex)
     field.onChange(newFiles)
   }
 
-  const canAddMore = previewUrls.length < maxImages
+  const canAddMore = totalCount < maxImages
 
   return (
     <FormItem className={cn("flex flex-col space-y-2", className)}>
       {label && <FormLabel>{label}</FormLabel>}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {previewUrls.map((url, index) => (
+        {previewItems.map((item, index) => (
           <div
             key={index}
             className="relative group rounded-md border overflow-hidden"
           >
-            {url ? (
+            {item.url ? (
               <>
                 <img
-                  src={url}
+                  src={item.url}
                   alt={`Preview ${index + 1}`}
                   className="w-full h-32 object-cover"
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={() => handleRemoveImage(item)}
                   className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <X className="h-4 w-4" />
@@ -123,13 +161,13 @@ export function MultiImageUploadField({
 
         {canAddMore && (
           <label
-            htmlFor="multi-image-upload"
+            htmlFor={addInputId}
             className={cn(
               "relative flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-4 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/50 h-32"
             )}
           >
             <input
-              id="multi-image-upload"
+              id={addInputId}
               type="file"
               accept="image/*"
               multiple
@@ -144,15 +182,15 @@ export function MultiImageUploadField({
         )}
       </div>
 
-      {previewUrls.length === 0 && (
+      {previewItems.length === 0 && (
         <label
-          htmlFor="multi-image-upload-initial"
+          htmlFor={initialInputId}
           className={cn(
             "relative flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-gray-300 p-8 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800/50"
           )}
         >
           <input
-            id="multi-image-upload-initial"
+            id={initialInputId}
             type="file"
             accept="image/*"
             multiple
@@ -170,9 +208,9 @@ export function MultiImageUploadField({
       )}
 
       <FormMessage />
-      {previewUrls.length > 0 && (
+      {previewItems.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          {previewUrls.length} image{previewUrls.length > 1 ? "s" : ""} sélectionnée{previewUrls.length > 1 ? "s" : ""}
+          {totalCount} image{totalCount > 1 ? "s" : ""} sélectionnée{totalCount > 1 ? "s" : ""}
           {maxImages && ` (maximum ${maxImages})`}
         </p>
       )}

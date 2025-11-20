@@ -48,6 +48,29 @@ export const deleteProduct = async (id: string): Promise<void> => {
   await axios.delete(`${API_BASE_URL}/${id}`);
 };
 
+/**
+ * Normalise une URL d'image en chemin relatif pour le stockage en base de données.
+ * Extrait le chemin relatif depuis une URL complète (ex: http://localhost:8000/storage/products/... -> products/...)
+ */
+const normalizeImagePath = (url: string): string => {
+  if (!url) return url;
+  
+  // Si c'est déjà un chemin relatif (ne commence pas par http), le retourner tel quel
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    // Enlever le préfixe storage/ s'il existe
+    return url.replace(/^storage\//, '').replace(/^\//, '');
+  }
+  
+  // Extraire le chemin après /storage/
+  const match = url.match(/\/storage\/(.+)$/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  
+  // Si aucun pattern ne correspond, retourner l'URL telle quelle (le backend la normalisera)
+  return url;
+};
+
 // Helper function to convert ProductFormData to FormData
 export const toFormData = (data: ProductFormData): FormData => {
   const formData = new FormData();
@@ -69,6 +92,17 @@ export const toFormData = (data: ProductFormData): FormData => {
     formData.append('image_principale', data.image_principale);
   }
   
+  if (data.existing_images_secondaires !== undefined) {
+    formData.append('existing_images_secondaires_submitted', '1');
+    data.existing_images_secondaires.forEach((url) => {
+      if (url) {
+        // Normaliser l'URL en chemin relatif avant de l'envoyer
+        const normalizedPath = normalizeImagePath(url);
+        formData.append('existing_images_secondaires[]', normalizedPath);
+      }
+    });
+  }
+
   // Pour les images secondaires : seulement les nouveaux fichiers
   // Les images existantes sont conservées par le backend
   if (data.images_secondaires && data.images_secondaires.length > 0) {

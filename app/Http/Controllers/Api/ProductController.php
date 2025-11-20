@@ -63,6 +63,13 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $existingImagesInput = $data['existing_images_secondaires'] ?? null;
+        unset($data['existing_images_secondaires'], $data['existing_images_secondaires_submitted']);
+        $existingImagesSubmitted = $request->boolean('existing_images_secondaires_submitted');
+        $originalImages = $product->images_secondaires ?? [];
+        $existingImages = $existingImagesSubmitted
+            ? $this->normalizeImagePaths($existingImagesInput)
+            : $originalImages;
         $imagePrincipalePath = null;
         $imagesSecondaires = [];
 
@@ -148,6 +155,15 @@ class ProductController extends Controller
         ]);
         
         $data = $request->validated();
+        $existingImagesInput = $data['existing_images_secondaires'] ?? null;
+        unset($data['existing_images_secondaires'], $data['existing_images_secondaires_submitted']);
+        $existingImagesSubmitted = $request->boolean('existing_images_secondaires_submitted');
+        $originalImages = $product->images_secondaires ?? [];
+        
+        // Normaliser les chemins d'images existantes pour stocker uniquement les chemins relatifs
+        $existingImages = $existingImagesSubmitted
+            ? $this->normalizeImagePaths($existingImagesInput)
+            : $originalImages;
         
         // Log pour déboguer
         Log::info('Product update validated data:', $data);
@@ -172,18 +188,24 @@ class ProductController extends Controller
 
             // Upload de nouvelles images secondaires si fournies
             if ($request->hasFile('images_secondaires')) {
-                // Récupérer les images existantes ou initialiser un tableau vide
-                $existingImages = $product->images_secondaires ?? [];
-                
                 // Upload des nouvelles images secondaires
                 foreach ($request->file('images_secondaires') as $image) {
                     $path = $image->store('products/secondary', 'public');
                     $existingImages[] = $path;
                     $newImagesSecondaires[] = $path;
                 }
-                
-                $data['images_secondaires'] = $existingImages;
             }
+
+            if ($existingImagesSubmitted) {
+                $removedImages = array_diff($originalImages, $existingImages);
+                foreach ($removedImages as $imagePath) {
+                    if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                        Storage::disk('public')->delete($imagePath);
+                    }
+                }
+            }
+
+            $data['images_secondaires'] = $existingImages;
 
             // Mise à jour du produit
             $product->update($data);
@@ -267,6 +289,45 @@ class ProductController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Normalise un ou plusieurs chemins d'images pour stocker uniquement le chemin relatif.
+     * Extrait le chemin relatif depuis une URL complète ou un chemin avec préfixe storage/.
+     *
+     * @param  array<string>|string|null  $paths
+     * @return array<int, string>
+     */
+    private function normalizeImagePaths(array|string|null $paths): array
+    {
+        $paths = is_array($paths) ? $paths : ($paths !== null ? [$paths] : []);
+
+        return collect($paths)
+            ->filter()
+            ->map(function ($path) {
+                if (!$path) {
+                    return null;
+                }
+
+                $path = str_replace('\\', '/', $path);
+
+                // Si c'est une URL complète (http:// ou https://), extraire le chemin après storage/
+                if (preg_match('#https?://[^/]+/storage/(.+)#', $path, $matches)) {
+                    return $matches[1];
+                }
+
+                // Si le chemin contient storage/, extraire ce qui suit
+                if (str_contains($path, 'storage/')) {
+                    $parts = explode('storage/', $path, 2);
+                    return $parts[1] ?? $path;
+                }
+
+                // Sinon, retourner le chemin tel quel (en enlevant les slashes en début)
+                return ltrim($path, '/');
+            })
+            ->filter()
+            ->values()
+            ->toArray();
     }
 }
 

@@ -42,6 +42,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   image_principale: z.any().optional(),
   images_secondaires: z.array(z.any()).optional(),
+  existing_images_secondaires: z.array(z.string()).optional(),
   en_stock: z.boolean(),
   active: z.boolean(),
 })
@@ -64,6 +65,7 @@ export function ProductNewForm({ product }: ProductFormProps) {
       active: isEdit ? product?.active ?? true : true,
       image_principale: undefined,
       images_secondaires: [],
+      existing_images_secondaires: product ? product.images_secondaires ?? [] : undefined,
     },
   })
 
@@ -78,13 +80,24 @@ export function ProductNewForm({ product }: ProductFormProps) {
         active: product.active,
         image_principale: undefined, // On garde undefined pour ne pas forcer une nouvelle image
         images_secondaires: [], // On initialise vide, les images existantes sont gérées par defaultImageUrls
+        existing_images_secondaires: product.images_secondaires ?? [],
       })
     }
   }, [product, form])
 
+  const existingSecondaryImages = form.watch("existing_images_secondaires")
+  const normalizedExistingSecondaryImages = existingSecondaryImages ?? []
+
+  const handleExistingImagesChange = (urls: string[]) => {
+    form.setValue("existing_images_secondaires", urls, {
+      shouldDirty: true,
+    })
+  }
+
   function onSubmit(values: FormValues) {
     // Convertir les images secondaires en File[]
     const imagesSecondaires = (values.images_secondaires || []).filter((img): img is File => img instanceof File);
+    const existingSecondaryImages = values.existing_images_secondaires ?? (product?.images_secondaires ?? []);
     
     const formData: ProductFormData = {
       name: values.name,
@@ -94,6 +107,7 @@ export function ProductNewForm({ product }: ProductFormProps) {
       active: values.active,
       image_principale: values.image_principale instanceof File ? values.image_principale : undefined,
       images_secondaires: imagesSecondaires,
+      existing_images_secondaires: existingSecondaryImages,
     };
 
     console.log('Form data to send:', formData);
@@ -255,6 +269,8 @@ export function ProductNewForm({ product }: ProductFormProps) {
                 value: (field.value || []) as File[],
               }}
               defaultImageUrls={product?.images_secondaires || []}
+              existingImageUrls={normalizedExistingSecondaryImages}
+              onExistingImagesChange={handleExistingImagesChange}
               maxImages={10}
             />
           )}

@@ -21,6 +21,7 @@ export interface ProductFormData {
   price: number;
   image_principale?: File | string | null;
   images_secondaires?: File[];
+  existing_images_secondaires?: string[];
   description?: string;
   en_stock: boolean;
   active: boolean;
