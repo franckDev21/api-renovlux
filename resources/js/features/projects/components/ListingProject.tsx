@@ -18,6 +18,7 @@ function ListingProject() {
   }
 
   if (error) {
+    console.error('Erreur chargement projets:', error);
     return (
       <div className="p-4 text-center text-destructive">
         Erreur lors du chargement des projets. Veuillez réessayer.
@@ -25,7 +26,11 @@ function ListingProject() {
     )
   }
 
-  const projects = data?.data || []
+  console.log('Données reçues de l\'API:', data);
+  // Essayer différentes structures de données
+  const projects = Array.isArray(data) 
+    ? data 
+    : data?.data || [];
 
   return (
     <div>

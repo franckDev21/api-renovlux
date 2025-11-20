@@ -4,7 +4,7 @@ export interface Project {
   description: string | null;
   image: string | null;
   secondary_images: string[];
-  category_id?: number | string | null;
+  category_id: number | string;
   created_at: string;
   updated_at: string;
 }
@@ -14,6 +14,7 @@ export interface ProjectFormData {
   description?: string | null;
   image?: File | string | null;
   secondary_images?: File[];
+  category_id: number | string;
 }
 
 export interface ProjectFilters {

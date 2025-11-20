@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ServiceController;
 
 // Routes pour les projets
 Route::apiResource('projects', ProjectController::class)->except(['update']);
@@ -30,8 +32,18 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
     
     // Routes authentifiées pour les services
-    Route::post('services', [\App\Http\Controllers\Api\ServiceController::class, 'store'])->name('services.store');
-    Route::put('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->name('services.update');
-    Route::patch('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'update'])->name('services.update');
-    Route::delete('services/{service}', [\App\Http\Controllers\Api\ServiceController::class, 'destroy'])->name('services.destroy');
+    Route::post('services', [ServiceController::class, 'store'])->name('services.store');
+    Route::put('services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::patch('services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+    
+    // Routes authentifiées pour les catégories (création/mise à jour/suppression)
+    Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::patch('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 });
+
+// Routes publiques pour les catégories (lecture)
+Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');

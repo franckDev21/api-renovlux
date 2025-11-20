@@ -27,8 +27,12 @@ class ProjectResource extends JsonResource
             'image' => $this->image ? asset('storage/' . $this->image) : null,
             'secondary_images' => $secondaryImages,
             'created_at' => $this->created_at->translatedFormat('d M Y'),
+            'category_id' => $this->category_id,
             'category' => $this->whenLoaded('category', function () {
-                return $this->category->name;
+                return [
+                    'id' => $this->category->id,
+                    'name' => $this->category->name
+                ];
             })
         ];
     }

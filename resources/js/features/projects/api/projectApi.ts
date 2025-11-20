@@ -55,6 +55,7 @@ export const toFormData = (data: ProjectFormData): FormData => {
   const formData = new FormData();
   formData.append('title', data.title);
   formData.append('description', data.description || '');
+  formData.append('category_id', String(data.category_id));
 
   if (data.image instanceof File) {
     formData.append('image', data.image);

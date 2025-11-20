@@ -24,9 +24,18 @@ class ProjectController extends Controller
             $query->take((int)$request->limit);
         }
         
-        $projects = $query->get();
+        $perPage = $request->input('per_page', 15);
+        $projects = $query->paginate($perPage);
         
-        return response()->json(ProjectResource::collection($projects));
+        return response()->json([
+            'data' => ProjectResource::collection($projects),
+            'meta' => [
+                'current_page' => $projects->currentPage(),
+                'last_page' => $projects->lastPage(),
+                'per_page' => $projects->perPage(),
+                'total' => $projects->total(),
+            ],
+        ]);
     }
 
     /**
@@ -65,7 +74,19 @@ class ProjectController extends Controller
      */
     public function show(Project $project): JsonResponse
     {
-        return response()->json(new ProjectResource($project->load('category')));
+        // Charger explicitement la relation category
+        $project->load('category');
+        
+        // Log pour débogage
+        \Log::info('Project show:', [
+            'project_id' => $project->id,
+            'category_loaded' => $project->relationLoaded('category'),
+            'category_id' => $project->category_id
+        ]);
+        
+        return response()->json([
+            'data' => new ProjectResource($project)
+        ]);
     }
 
     /**

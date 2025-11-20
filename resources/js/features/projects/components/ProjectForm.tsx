@@ -19,12 +19,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ImageUploadField } from "@/components/ImageUploadField"
 import { MultiImageUploadField } from "@/components/MultiImageUploadField"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import { Loader2 } from "lucide-react"
 import { Project } from "../../projects/types/project"
 import { ProjectFormData } from "../../projects/types/project"
 import { useCreateProject, useUpdateProject } from "../hooks/useProjects"
 import { router } from "@inertiajs/react"
+import { useCategories } from "@/features/categories/hooks/useCategories"
 
 interface ProjectFormProps {
   project?: Project
@@ -37,6 +39,10 @@ const formSchema = z.object({
   description: z.string().optional(),
   image: z.any().optional(),
   secondary_images: z.array(z.any()).optional(),
+  category_id: z.union([z.string(), z.number()], {
+    required_error: "La catégorie est requise",
+    invalid_type_error: "Catégorie invalide",
+  }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -46,6 +52,7 @@ export function ProjectForm({ project }: ProjectFormProps) {
   const createMutation = useCreateProject();
   const updateMutation = useUpdateProject();
   const mutation = isEdit ? updateMutation : createMutation;
+  const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,8 +61,24 @@ export function ProjectForm({ project }: ProjectFormProps) {
       description: project?.description ?? '',
       image: undefined,
       secondary_images: [],
+      // S'assurer que category_id est une chaîne pour le composant Select
+      category_id: project?.category_id ? String(project.category_id) : '',
     },
   })
+  
+  // Forcer la mise à jour de la valeur de la catégorie quand les données sont chargées
+  useEffect(() => {
+    if (project?.category_id && categoriesData?.data) {
+      form.setValue('category_id', String(project.category_id), { shouldValidate: true });
+    }
+  }, [project?.category_id, categoriesData?.data, form])
+  
+  // Debug
+  useEffect(() => {
+    console.log('Form values:', form.getValues())
+    console.log('Project category_id:', project?.category_id)
+    console.log('Categories data:', categoriesData?.data)
+  }, [form, project?.category_id, categoriesData?.data])
 
   useEffect(() => {
     if (project) {
@@ -64,6 +87,8 @@ export function ProjectForm({ project }: ProjectFormProps) {
         description: project.description || '',
         image: undefined,
         secondary_images: [],
+        // S'assurer que category_id est une chaîne pour le composant Select
+        category_id: project.category_id ? String(project.category_id) : '',
       })
     }
   }, [project, form])
@@ -76,6 +101,7 @@ export function ProjectForm({ project }: ProjectFormProps) {
       description: values.description || '',
       image: values.image instanceof File ? values.image : undefined,
       secondary_images: imagesSecondaires,
+      category_id: typeof values.category_id === 'string' && values.category_id !== '' ? values.category_id : Number(values.category_id),
     };
 
     if (isEdit && project) {
@@ -124,6 +150,35 @@ export function ProjectForm({ project }: ProjectFormProps) {
                   <FormDescription>
                     Nom public du projet.
                   </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Catégorie</FormLabel>
+                  <FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingCategories ? "Chargement..." : "Sélectionnez une catégorie"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesData?.data?.map((cat) => (
+                          <SelectItem key={cat.id} value={String(cat.id)}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
