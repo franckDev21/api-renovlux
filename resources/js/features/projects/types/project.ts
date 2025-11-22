@@ -14,6 +14,7 @@ export interface ProjectFormData {
   description?: string | null;
   image?: File | string | null;
   secondary_images?: File[];
+  existing_secondary_images?: string[];
   category_id: number | string;
 }
 

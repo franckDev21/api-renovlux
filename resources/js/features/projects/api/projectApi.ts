@@ -57,10 +57,21 @@ export const toFormData = (data: ProjectFormData): FormData => {
   formData.append('description', data.description || '');
   formData.append('category_id', String(data.category_id));
 
+  // Gestion de l'image principale
   if (data.image instanceof File) {
     formData.append('image', data.image);
   }
 
+  // Gestion des images secondaires existantes
+  if (data.existing_secondary_images && data.existing_secondary_images.length > 0) {
+    data.existing_secondary_images.forEach((imageUrl) => {
+      if (typeof imageUrl === 'string') {
+        formData.append('existing_secondary_images[]', imageUrl);
+      }
+    });
+  }
+
+  // Gestion des nouvelles images secondaires
   if (data.secondary_images && data.secondary_images.length > 0) {
     data.secondary_images.forEach((file) => {
       if (file instanceof File) {
@@ -68,6 +79,9 @@ export const toFormData = (data: ProjectFormData): FormData => {
       }
     });
   }
+
+  // Ajouter un indicateur pour indiquer que les images existantes ont été soumises
+  formData.append('existing_secondary_images_submitted', 'true');
 
   return formData;
 };

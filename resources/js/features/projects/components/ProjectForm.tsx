@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -39,10 +39,14 @@ const formSchema = z.object({
   description: z.string().optional(),
   image: z.any().optional(),
   secondary_images: z.array(z.any()).optional(),
-  category_id: z.union([z.string(), z.number()], {
-    required_error: "La catégorie est requise",
-    invalid_type_error: "Catégorie invalide",
-  }),
+  existing_secondary_images: z.array(z.string()).optional(),
+  category_id: z.union([
+    z.string().min(1, "La catégorie est requise"),
+    z.number().min(1, "La catégorie est requise")
+  ]).refine(
+    val => val !== undefined && val !== '' && val !== null,
+    { message: "La catégorie est requise" }
+  ),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -54,6 +58,8 @@ export function ProjectForm({ project }: ProjectFormProps) {
   const mutation = isEdit ? updateMutation : createMutation;
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
 
+  const [existingSecondaryImages, setExistingSecondaryImages] = useState<string[]>(project?.secondary_images || []);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -61,6 +67,7 @@ export function ProjectForm({ project }: ProjectFormProps) {
       description: project?.description ?? '',
       image: undefined,
       secondary_images: [],
+      existing_secondary_images: project?.secondary_images || [],
       // S'assurer que category_id est une chaîne pour le composant Select
       category_id: project?.category_id ? String(project.category_id) : '',
     },
@@ -101,6 +108,7 @@ export function ProjectForm({ project }: ProjectFormProps) {
       description: values.description || '',
       image: values.image instanceof File ? values.image : undefined,
       secondary_images: imagesSecondaires,
+      existing_secondary_images: existingSecondaryImages,
       category_id: typeof values.category_id === 'string' && values.category_id !== '' ? values.category_id : Number(values.category_id),
     };
 
@@ -164,8 +172,8 @@ export function ProjectForm({ project }: ProjectFormProps) {
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value}
-                      defaultValue={field.value}
+                      value={String(field.value || '')}
+                      defaultValue={String(field.value || '')}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={isLoadingCategories ? "Chargement..." : "Sélectionnez une catégorie"} />
@@ -201,24 +209,28 @@ export function ProjectForm({ project }: ProjectFormProps) {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="secondary_images"
+              render={({ field: { value, onChange, ...field } }) => (
+                <MultiImageUploadField
+                  label="Images secondaires"
+                  field={{
+                    ...field,
+                    value: value || [],
+                    onChange: (files: File[]) => {
+                      onChange(files);
+                    },
+                  }}
+                  existingImageUrls={existingSecondaryImages}
+                  onExistingImagesChange={setExistingSecondaryImages}
+                  maxImages={5}
+                />
+              )}
+            />
           </div>
         </div>
-
-        <FormField
-          control={form.control}
-          name="secondary_images"
-          render={({ field }) => (
-            <MultiImageUploadField
-              label="Images secondaires"
-              field={{
-                onChange: (files: File[]) => field.onChange(files),
-                value: (field.value || []) as File[],
-              }}
-              defaultImageUrls={project?.secondary_images || []}
-              maxImages={10}
-            />
-          )}
-        />
 
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending && (

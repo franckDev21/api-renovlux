@@ -10,6 +10,8 @@ use App\Models\Project;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -45,28 +47,66 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
         
-        // Handle main image upload
+        // Gérer l'upload de l'image principale
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('projects', 'public');
             $data['image'] = $path;
         }
         
-        // Handle secondary images upload
+        // Gérer l'upload des images secondaires
         $secondaryImages = [];
+        
+        // Gérer les images secondaires existantes si fournies
+        if ($request->has('existing_secondary_images') && is_array($request->existing_secondary_images)) {
+            $existingImages = $this->normalizeImagePaths($request->existing_secondary_images);
+            $secondaryImages = array_merge($secondaryImages, $existingImages);
+        }
+        
+        // Gérer les nouvelles images secondaires
         if ($request->hasFile('secondary_images')) {
             foreach ($request->file('secondary_images') as $image) {
                 $path = $image->store('projects/secondary', 'public');
                 $secondaryImages[] = $path;
             }
+        }
+        
+        if (!empty($secondaryImages)) {
             $data['secondary_images'] = $secondaryImages;
         }
         
-        $project = Project::create($data);
+        DB::beginTransaction();
         
-        return response()->json([
-            'message' => 'Project created successfully',
-            'data' => new ProjectResource($project->load('category'))
-        ], 201);
+        try {
+            $project = Project::create($data);
+            
+            DB::commit();
+            
+            return response()->json([
+                'message' => 'Project created successfully',
+                'data' => new ProjectResource($project->load('category'))
+            ], 201);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Supprimer les images qui auraient pu être uploadées en cas d'erreur
+            if (isset($data['image']) && Storage::disk('public')->exists($data['image'])) {
+                Storage::disk('public')->delete($data['image']);
+            }
+            
+            if (!empty($secondaryImages)) {
+                foreach ($secondaryImages as $imagePath) {
+                    if (Storage::disk('public')->exists($imagePath)) {
+                        Storage::disk('public')->delete($imagePath);
+                    }
+                }
+            }
+            
+            return response()->json([
+                'message' => 'An error occurred while creating the project',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -96,37 +136,85 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
         
-        // Handle main image upload if a new image is provided
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($project->image && Storage::disk('public')->exists($project->image)) {
-                Storage::disk('public')->delete($project->image);
+        // Gérer les images secondaires existantes
+        $existingImagesInput = $request->input('existing_secondary_images', []);
+        $existingImagesSubmitted = $request->boolean('existing_secondary_images_submitted', false);
+        $originalImages = $project->secondary_images ?? [];
+        
+        // Normaliser les chemins d'images existantes
+        $existingImages = $existingImagesSubmitted
+            ? $this->normalizeImagePaths($existingImagesInput)
+            : $originalImages;
+            
+        $newSecondaryImages = [];
+
+        DB::beginTransaction();
+
+        try {
+            // Gérer l'upload de l'image principale si une nouvelle image est fournie
+            if ($request->hasFile('image')) {
+                // Supprimer l'ancienne image si elle existe
+                if ($project->image && Storage::disk('public')->exists($project->image)) {
+                    Storage::disk('public')->delete($project->image);
+                }
+                
+                $path = $request->file('image')->store('projects', 'public');
+                $data['image'] = $path;
+            }
+
+            // Gérer l'upload des nouvelles images secondaires si fournies
+            if ($request->hasFile('secondary_images')) {
+                // Upload des nouvelles images secondaires
+                foreach ($request->file('secondary_images') as $image) {
+                    $path = $image->store('projects/secondary', 'public');
+                    $existingImages[] = $path;
+                    $newSecondaryImages[] = $path;
+                }
+            }
+
+            if ($existingImagesSubmitted) {
+                // Supprimer les images qui ont été supprimées de l'interface
+                $removedImages = array_diff($originalImages, $existingImages);
+                foreach ($removedImages as $imagePath) {
+                    if (Storage::disk('public')->exists($imagePath)) {
+                        Storage::disk('public')->delete($imagePath);
+                    }
+                }
+                
+                $data['secondary_images'] = $existingImages;
+            } elseif (empty($newSecondaryImages)) {
+                // Si aucune image n'a été soumise et aucune nouvelle image n'a été ajoutée, conserver les images existantes
+                $data['secondary_images'] = $originalImages;
+            } else {
+                // Si des nouvelles images ont été ajoutées mais que les images existantes n'ont pas été soumises
+                // On ajoute simplement les nouvelles images aux existantes
+                $data['secondary_images'] = array_merge($originalImages, $newSecondaryImages);
             }
             
-            $path = $request->file('image')->store('projects', 'public');
-            $data['image'] = $path;
-        }
-        
-        // Handle secondary images upload if provided
-        if ($request->hasFile('secondary_images')) {
-            // Get existing secondary images or initialize empty array
-            $existingImages = $project->secondary_images ?? [];
+            $project->update($data);
             
-            // Upload new secondary images
-            foreach ($request->file('secondary_images') as $image) {
-                $path = $image->store('projects/secondary', 'public');
-                $existingImages[] = $path;
+            DB::commit();
+            
+            return response()->json([
+                'message' => 'Project updated successfully',
+                'data' => new ProjectResource($project->load('category'))
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Supprimer les nouvelles images qui auraient pu être uploadées en cas d'erreur
+            foreach ($newSecondaryImages as $imagePath) {
+                if (Storage::disk('public')->exists($imagePath)) {
+                    Storage::disk('public')->delete($imagePath);
+                }
             }
             
-            $data['secondary_images'] = $existingImages;
+            return response()->json([
+                'message' => 'An error occurred while updating the project',
+                'error' => $e->getMessage()
+            ], 500);
         }
-        
-        $project->update($data);
-        
-        return response()->json([
-            'message' => 'Project updated successfully',
-            'data' => new ProjectResource($project->load('category'))
-        ]);
     }
 
     /**
@@ -144,31 +232,74 @@ class ProjectController extends Controller
         // Décoder le chemin de l'image qui a été encodé en URL
         $imagePath = urldecode($imagePath);
         
+        // Normaliser le chemin de l'image pour la comparaison
+        $normalizedPath = $this->normalizeImagePaths([$imagePath])[0] ?? $imagePath;
+        
         // Vérifier si l'image existe dans le tableau des images secondaires
         $secondaryImages = $project->secondary_images ?? [];
-        $imageIndex = array_search($imagePath, $secondaryImages);
+        $normalizedSecondaryImages = $this->normalizeImagePaths($secondaryImages);
+        $imageIndex = array_search($normalizedPath, $normalizedSecondaryImages);
         
         if ($imageIndex === false) {
             return response()->json([
-                'message' => 'Image not found in this project',
+                'message' => 'Image not found in project',
             ], 404);
         }
         
-        // Supprimer le fichier physique
-        if (Storage::disk('public')->exists($imagePath)) {
-            Storage::disk('public')->delete($imagePath);
+        // Récupérer le chemin d'origine pour la suppression
+        $originalPath = $secondaryImages[$imageIndex] ?? $normalizedPath;
+        
+        // Supprimer l'image du stockage
+        if (Storage::disk('public')->exists($originalPath)) {
+            Storage::disk('public')->delete($originalPath);
         }
         
-        // Supprimer l'image du tableau
+        // Supprimer l'image du tableau des images secondaires
         array_splice($secondaryImages, $imageIndex, 1);
         
         // Mettre à jour le projet
-        $project->update(['secondary_images' => $secondaryImages]);
+        $project->update([
+            'secondary_images' => $secondaryImages
+        ]);
         
         return response()->json([
             'message' => 'Image deleted successfully',
             'data' => new ProjectResource($project->load('category'))
         ]);
+    }
+    
+    /**
+     * Normalize image paths to store only the relative path
+     *
+     * @param  array  $imagePaths
+     * @return array
+     */
+    protected function normalizeImagePaths($imagePaths)
+    {
+        if (!is_array($imagePaths)) {
+            return [];
+        }
+        
+        return array_map(function ($path) {
+            // Si le chemin est déjà une URL complète, extraire le chemin relatif
+            if (Str::startsWith($path, ['http://', 'https://'])) {
+                $parsed = parse_url($path);
+                return ltrim($parsed['path'], '/');
+            }
+            
+            // Si le chemin commence par /storage, le convertir en chemin relatif
+            if (Str::startsWith($path, '/storage/')) {
+                return 'public/' . Str::after($path, '/storage/');
+            }
+            
+            // Si le chemin commence par storage/, le convertir en chemin relatif
+            if (Str::startsWith($path, 'storage/')) {
+                return 'public/' . Str::after($path, 'storage/');
+            }
+            
+            // Retourner le chemin tel quel s'il est déjà un chemin relatif
+            return $path;
+        }, $imagePaths);
     }
     
     /**
