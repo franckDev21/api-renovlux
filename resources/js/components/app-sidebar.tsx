@@ -31,6 +31,11 @@ const mainNavItems: NavItem[] = [
         title: 'Produits',
         href: '/products/home',
         icon: Package,
+    },
+    {
+        title: 'Projets',
+        href: '/projects/home',
+        icon: Folder,
     }
 ];
 
