@@ -66,7 +66,9 @@ class ProjectController extends Controller
         if ($request->hasFile('secondary_images')) {
             foreach ($request->file('secondary_images') as $image) {
                 $path = $image->store('projects/secondary', 'public');
-                $secondaryImages[] = $path;
+                // Normaliser le chemin pour enlever le préfixe 'public/'
+                $normalizedPath = $this->normalizeImagePaths([$path]);
+                $secondaryImages = array_merge($secondaryImages, $normalizedPath);
             }
         }
         
@@ -280,26 +282,40 @@ class ProjectController extends Controller
             return [];
         }
         
-        return array_map(function ($path) {
-            // Si le chemin est déjà une URL complète, extraire le chemin relatif
+        return array_values(array_filter(array_map(function ($path) {
+            if (empty($path)) {
+                return null;
+            }
+
+            // Si le chemin est une URL complète, extraire le chemin relatif
             if (Str::startsWith($path, ['http://', 'https://'])) {
                 $parsed = parse_url($path);
-                return ltrim($parsed['path'], '/');
+                $path = ltrim($parsed['path'] ?? '', '/');
+                // Enlever le préfixe 'storage/' s'il existe
+                if (Str::startsWith($path, 'storage/')) {
+                    return Str::after($path, 'storage/');
+                }
+                return $path;
             }
             
-            // Si le chemin commence par /storage, le convertir en chemin relatif
+            // Si le chemin commence par /storage, retourner le chemin relatif
             if (Str::startsWith($path, '/storage/')) {
-                return 'public/' . Str::after($path, '/storage/');
+                return Str::after($path, '/storage/');
             }
             
-            // Si le chemin commence par storage/, le convertir en chemin relatif
+            // Si le chemin commence par storage/, retourner le chemin relatif
             if (Str::startsWith($path, 'storage/')) {
-                return 'public/' . Str::after($path, 'storage/');
+                return Str::after($path, 'storage/');
             }
             
-            // Retourner le chemin tel quel s'il est déjà un chemin relatif
+            // Si le chemin commence par public/, retourner le chemin après public/
+            if (Str::startsWith($path, 'public/')) {
+                return Str::after($path, 'public/');
+            }
+            
+            // Retourner le chemin tel quel s'il est déjà un chemin relatif correct
             return $path;
-        }, $imagePaths);
+        }, $imagePaths)));
     }
     
     /**
