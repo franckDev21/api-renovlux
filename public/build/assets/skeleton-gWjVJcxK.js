@@ -1,1 +1,0 @@
-import{j as o}from"./app-CM9Os29j.js";import{c as r}from"./createLucideIcon-B7wNz9HT.js";function m({className:t,...e}){return o.jsx("div",{"data-slot":"skeleton",className:r("bg-primary/10 animate-pulse rounded-md",t),...e})}export{m as S};
